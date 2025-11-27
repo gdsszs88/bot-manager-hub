@@ -84,7 +84,15 @@ const Index = () => {
       });
 
       setMessageCount(response.message_count);
-      setTrialMessages(prev => [...prev, { role: 'bot', content: response.reply || '消息已发送' }]);
+      setTrialMessages(prev => [...prev, { role: 'bot', content: response.reply || '消息已发送到 Telegram' }]);
+
+      // 自动滚动到底部
+      setTimeout(() => {
+        const messagesContainer = document.getElementById('trial-messages');
+        if (messagesContainer) {
+          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+      }, 100);
 
       if (response.message_count >= 20) {
         setTimeout(() => {
@@ -101,6 +109,8 @@ const Index = () => {
         description: error.message || '发送消息失败',
         variant: 'destructive',
       });
+      // 发送失败时移除用户消息
+      setTrialMessages(prev => prev.slice(0, -1));
     }
   };
 
@@ -179,25 +189,30 @@ const Index = () => {
                   )}
                 </div>
 
-                <div className="bg-muted/30 rounded-lg p-4 h-96 overflow-y-auto space-y-3">
+                <div className="bg-muted/30 rounded-lg p-4 h-96 overflow-y-auto space-y-3" id="trial-messages">
                   {trialMessages.length === 0 ? (
                     <div className="text-center text-muted-foreground py-16">
-                      发送您的第一条消息开始试用
+                      <MessageSquare className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                      <p className="text-lg font-medium mb-2">开始您的试用体验</p>
+                      <p className="text-sm">发送消息测试机器人功能</p>
                     </div>
                   ) : (
                     trialMessages.map((msg, idx) => (
                       <div
                         key={idx}
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2`}
                       >
                         <div
-                          className={`max-w-[70%] rounded-2xl px-4 py-2 ${
+                          className={`max-w-[70%] rounded-2xl px-4 py-3 shadow-sm ${
                             msg.role === 'user'
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-card text-card-foreground border'
                           }`}
                         >
-                          {msg.content}
+                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                          <span className="text-xs opacity-70 mt-1 block">
+                            {new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
                         </div>
                       </div>
                     ))
@@ -206,18 +221,24 @@ const Index = () => {
 
                 <div className="flex gap-2">
                   <Input
-                    placeholder="输入消息..."
+                    placeholder={messageCount >= 20 ? "试用已结束，请激活授权..." : "输入消息..."}
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                     disabled={messageCount >= 20}
+                    className="flex-1"
                   />
                   <Button 
                     onClick={handleSendMessage}
                     disabled={messageCount >= 20 || !currentMessage.trim()}
+                    size="icon"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
+                </div>
+
+                <div className="text-xs text-muted-foreground text-center">
+                  💡 提示：消息将同步到您的 Telegram 机器人
                 </div>
               </div>
             )}
